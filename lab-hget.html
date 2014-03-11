@@ -1,0 +1,268 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+	<meta name="Author" content="Natalia Bidart, Daniel Moisset, Eduardo Sanchez">
+	<meta name="Keywords" content="hget cliente client network distributed systems redes sistemas distribuídos FaMAF education educación">
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8">
+	<style type="text/css">
+		H1, H2, H3, DIV, P, LI,
+		UL, OL, TABLE, TD, TR {font-family: lucida sans, helvetica, arial, sans-serif;}
+		pre {background: #eee; border: 1px dashed #889; margin-left: 3em; padding: 1ex;}
+		dt {font-family: monospace; font-weight: bold;}
+	</style>
+	<title>Redes y Sistemas Distribuídos -- Laboratorio hget</title>
+</head>
+
+<body>
+
+<h1>Laboratorio: hget</h1>
+<p>
+Cátedra de Redes y Sistemas Distribuidos
+<br>Revisión 2014, Daniel Moisset
+<br>Revisión 2013, Rafael Carrascosa
+<br>Revisión 2012, Eduardo Sanchez
+<br>Revisión 2011, Eduardo Sanchez
+<br>Original 2009-2010, Natalia Bidart (C), Daniel Moisset (Python)
+
+
+<h2>Objetivos</h2>
+<ul>
+  <li>Leer y comprender código Python no-trivial.</li>
+  <li>Realizar un primer contacto con la programación de sockets.</li>
+  <li>Familiarizarse con las llamadas necesarias para utilizar sockets.</li>
+  <li>Entender la noción básica de comunicación cliente/servidor.</li>
+  <li>Ver los aspectos esenciales de como funciona un cliente de una aplicación de redes.</li>
+</ul>
+
+
+<h2>Tarea</h2>
+
+<p>El laboratorio consiste en completar la aplicación <code>hget</code>
+que obtiene una página web desde un servidor y la almacena en un
+archivo. La aplicación se comunica con servidores usando el protocolo
+HTTP (definido en el <a href="http://tools.ietf.org/html/rfc2616">RFC
+2616</a>). Es decir, hget es un <em>cliente HTTP</em>.
+
+<p>El código de hget está esencialmente ya escrito y se lo damos, con
+solamente una de las funciones incompletas: 
+<code>connect_to_server()</code>.</p>
+<p> Su tarea es completar el cuerpo de esta función para que el cliente funcione correctamente.</p>
+
+
+<h2>Ejemplo</h2>
+
+<p>A continuación daremos un ejemplo de la ejecución, suponiendo que <code>hget.py</code>
+ se encuentra en un directorio sin ningún otro archivo: </p>
+
+<pre width=75%>
+$ ls
+hget.py
+$ python hget.py http://www.unc.edu.ar/
+Contactando servidor 'www.unc.edu.ar'...
+Contactando al servidor en 200.16.16.61...
+Enviando pedido...
+Esperando respuesta...
+$ ls
+download.html  hget.py
+</pre>
+
+<p>Luego de solicitar una página por su URL, obtenemos un archivo llamado <code>download.html</code>. 
+Puede elegirse un nombre de archivo distinto con la opción <code>-o</code>:</p>
+
+<pre width=75%>
+$ python hget.py http://tools.ietf.org/html/rfc2616 -o estandar-http.html
+Contactando servidor 'tools.ietf.org'...
+Contactando al servidor en 208.66.40.242...
+Enviando pedido...
+Esperando respuesta...
+$ ls
+download.html  estandar-http.html  hget.py
+</pre>
+
+<h2>Tests</h2>        
+<p>En el código fuente que les entregamos, pueden ver que todas las
+funciones tienen un <em>docstring</em>, al principio de la función 
+que describe su comportamiento.</p>
+        
+<p>Algunas de estas funciones tienen ejemplos de uso desde el
+<em>intérprete interactivo</em> obtenidos copiando y pegando una
+sesión. Estos ejemplos, además de funcionar como documentación para
+aclarar lo que hace la función, pueden ser utilizados como tests
+automáticos (llamados <em>doctests</em> por ser tests que están incluidos en la
+documentación). Para ejecutar estos tests pueden hacer:</p>
+
+<pre width=75%>
+$ python -m doctest hget.py
+Contactando al servidor en 200.16.17.104...
+Contactando al servidor en 200.16.17.187...
+</pre>
+
+<p>Si el programa supera los tests, la salida de la ejecución de los
+mismos será vacía (excepto por los mensajes que impriman las funciones
+testeadas, como en el ejemplo de arriba).</p>
+
+<p>Cuando la ejecución de los tests fallan, obtendrán un listado de
+los tests que fallaron, el error que se produjo, y un resumen de cuantos
+tests fallaron:</p>
+
+<pre width=75%>
+eduardo@drubi:~/docencia/redes/labs/lab0$ python -m doctest hget.py 
+**********************************************************************
+File "hget.py", line 75, in hget.connect_to_server
+Failed example:
+    connect_to_server('www.famaf.unc.edu.ar') # doctest: +ELLIPSIS
+Exception raised:
+    Traceback (most recent call last):
+      File "/usr/lib/python2.6/doctest.py", line 1253, in __run
+        compileflags, 1) in test.globs
+      File "<doctest hget.connect_to_server[0]>", line 1, in <module>
+        connect_to_server('www.famaf.unc.edu.ar') # doctest: +ELLIPSIS
+      File "hget.py", line 95, in connect_to_server
+        sys.stderr.write("Contactando al servidor en %s...\n" % ip_address)
+    NameError: global name 'ip_address' is not defined
+**********************************************************************
+File "hget.py", line 78, in hget.connect_to_server
+Failed example:
+    connect_to_server('no.exis.te') # doctest: +IGNORE_EXCEPTION_DETAIL
+Expected:
+    Traceback (most recent call last):
+       ...
+    gaierror: [Errno -5] No address associated with hostname
+Got:
+    Traceback (most recent call last):
+      File "/usr/lib/python2.6/doctest.py", line 1253, in __run
+        compileflags, 1) in test.globs
+      File "<doctest hget.connect_to_server[1]>", line 1, in <module>
+        connect_to_server('no.exis.te') # doctest: +IGNORE_EXCEPTION_DETAIL
+      File "hget.py", line 95, in connect_to_server
+        sys.stderr.write("Contactando al servidor en %s...\n" % ip_address)
+    NameError: global name 'ip_address' is not defined
+**********************************************************************
+File "hget.py", line 83, in hget.connect_to_server
+Failed example:
+    connect_to_server('localhost')
+Exception raised:
+    Traceback (most recent call last):
+      File "/usr/lib/python2.6/doctest.py", line 1253, in __run
+        compileflags, 1) in test.globs
+      File "<doctest hget.connect_to_server[2]>", line 1, in <module>
+        connect_to_server('localhost')
+      File "hget.py", line 95, in connect_to_server
+        sys.stderr.write("Contactando al servidor en %s...\n" % ip_address)
+    NameError: global name 'ip_address' is not defined
+**********************************************************************
+1 items had failures:
+   3 of   3 in hget.connect_to_server
+***Test Failed*** 3 failures.
+eduardo@drubi:~/docencia/redes/labs/lab0$ 
+</pre>
+
+
+<h3>Notas sobre los test</h3>
+
+<ul>
+
+<li>La función que tienen que completar incluye tests, lo que les va a ayudar a 
+detectar algunos de los errores que podrían cometer.</li>
+<li>La batería de tests que les damos, ha sido desarrollada para correr en el laboratorio.
+En particular, el test que prueba que <code>localhost</code> no permite 
+conexiones al puerto 80. Tengan en cuenta que si lo prueban en su casa o en otro ámbito, 
+es posible que etso no se cumpla y el test falle si tienen algun proceso escuchando
+en el puerto 80.</li>
+<li>Si su versión de Python es la 2.6.6, no utilicen acentos (á, í, ó) en los comentarios del código 
+porque el <code>doctest</code> se queja!! 
+<pre width=75%>
+eduardo@drubi:~/docencia/redes/labs/lab0$ python -m doctest hget.py 
+Contactando al servidor en 200.16.17.104...
+Contactando al servidor en 200.16.17.187...
+
+Traceback (most recent call last):
+:
+UnicodeDecodeError: 'ascii' codec can't ,decode byte 0xc3 in position 52: ordinal not in range(128)
+</pre>
+</li>
+</ul>
+
+
+<h2>Estilo de Codificación</h2>
+
+<p>Deben seguir el estilo de codificación <a href="http://www.python.org/dev/peps/pep-0008/">PEP 8</a>
+ usado en los archivos que les entregamos.
+</p>
+
+<p>Recomendamos usar la herramienta "Python PEP 8 code style checker" <code>pep8</code> para controlar
+ que su código siga el estilo de codificación que les pedimos.</p>
+
+
+<h3>Ejemplo de uso</h3>
+<pre width=75%>
+eduardo@drubi:~/docencia/redes/labs/lab0$ pep8 hget.py
+hget.py:6:80: E501 line too long (80 characters)
+hget.py:21:15: E261 at least two spaces before inline comment
+hget.py:24:1: E302 expected 2 blank lines, found 1
+hget.py:56:33: E225 missing whitespace around operator
+hget.py:67:1: W291 trailing whitespace
+hget.py:85:22: E211 whitespace before '('
+hget.py:236:1: W391 blank line at end of file
+eduardo@drubi:~/docencia/redes/labs/original$
+</pre>
+<p>Si el estilo de codificación es correcto, la salida es nula:</p>
+<pre width=75%>
+eduardo@drubi:~/docencia/redes/labs/lab0$ pep8 hget.py
+eduardo@drubi:~/docencia/redes/labs/lab0$ 
+</pre>
+
+        
+<h2>Requisitos del código a entregar</h2>
+<ul>
+<li>NO se solicita un informe para este laboratorio. Pero el código
+que escriban debe contener <em>comentarios</em> con detalles de lo que
+hicieron.</li>
+<li>La entrega se realizará por e-mail, con fecha límite del lunes
+18 de marzo a las 23:59:59. El e-mail debe ir dirigido a 
+<code>profredes-famaf@googlegroups.com</code>, tener asunto 
+<code>Lab0 Nombre Apellido</code>, y contener como adjunto el archivo
+<code>nombre_apellido_hget.py</code> modificado.</li>
+<li>El programa entregado debe superar los tests incluidos en 
+<code>hget.py</code> y en <code>hget-test.py</code>. 
+<li>El programa entregado debe seguir el estilo de codificación PEP8. 
+<li>El trabajo del Lab0 es <em>individual</em>. No pueden compartir
+código entre alumnos, aún si después vayan a formar un grupo.</li>
+<li>La biblioteca de sockets de Python permite saltearse algunos pasos y
+omitir algunos argumentos si estamos usando los valores por defecto. No
+usen eso (para este Lab), así se ven los valores explícitos.</li>
+</ul>
+
+
+<h2>Material de Referencia</h2>
+<h3>Programación con sockets</h3>
+<p>Las siguientes guías son de programación de sockets en C; pero como en 
+realidad las primitivas de sockets usualmente se implementan al nivel
+del sistema operativo, son esencialmente las mismas que en Python:</p>
+<ul>
+  <li><a href="http://beej.us/guide/bgnet">http://beej.us/guide/bgnet</a>: Una guía de programación con sockets.</li>
+  <li><a href="http://www.lowtek.com/sockets/">http://www.lowtek.com/sockets/</a></li>
+  <li><a href="http://es.tldp.org/Tutoriales/PROG-SOCKETS/prog-sockets.html">http://es.tldp.org/Tutoriales/PROG-SOCKETS/prog-sockets.html</a></li>
+</ul>
+
+<p>Para dudas específicas sobre cada una de las operaciones de sockets, pueden consultar las páginas de manual de Linux asociadas a cada una de ellas (en C).</p>
+<p>La documentación para la implementación de <a href="http://docs.python.org/library/socket.html">sockets en Python</a> está dentro de la <a href="http://docs.python.org/library/">referencia de la biblioteca estándar</a>.</p>
+
+<h3>HTTP</h3>
+<ul>
+<li><a href="http://tools.ietf.org/html/rfc2616">RFC2616</a>: El estándar de HTTP/1.1.</li>
+<li><a href="http://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol">Hypertext Transfer Protocol</a> en Wikipedia.</li>
+</ul>
+        
+<h3>Python</h3>
+<ul>
+<li><a href="http://docs.python.org/tutorial/">The Python Tutorial</a>.</li>
+<li><a href="http://tutorialpython.com.ar">El Tutorial de Python</a>: traducción al castellano del anterior; disponible también en fotocopiadora. En <a href="http://python.org.ar/pyar/Tutorial?action=AttachFile&do=view&target=TutorialPython.pdf">PDF</a>.</li>
+<li><a href="http://docs.python.org/library/">The Python Standard Library</a>: referencia de la biblioteca estándar de Python, en inglés.</li>
+<li><a href="http://python.com.ar">PyAr</a>: Página de la comunidad Python en Argentina.</li>
+<li><a href="http://www.python.org/dev/peps/pep-0008/">Estilo de Codificación PEP 8</a>.</li>
+</ul>
+
+</body>
+</html>
